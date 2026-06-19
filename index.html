@@ -115,9 +115,9 @@ new Chart(document.getElementById('cBrand'),{type:'bar',
   {label:'จำนวนเครื่อง',data:DATA.by_brand.map(b=>b.items),backgroundColor:'#38bdf8'}]},
  options:{plugins:{legend:{display:false}},scales:{x:{grid},y:{grid,beginAtZero:true}}}});
 
-const top=DATA.by_dealer.slice(0,10);
+const topD=DATA.by_dealer.slice(0,10);
 new Chart(document.getElementById('cDealer'),{type:'bar',
- data:{labels:top.map(d=>d.dealer),datasets:[{label:'มูลค่า (บาท)',data:top.map(d=>d.value),backgroundColor:'#f97316'}]},
+ data:{labels:topD.map(d=>d.dealer),datasets:[{label:'มูลค่า (บาท)',data:topD.map(d=>d.value),backgroundColor:'#f97316'}]},
  options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid,beginAtZero:true},y:{grid}}}});
 
 // brand filter options
