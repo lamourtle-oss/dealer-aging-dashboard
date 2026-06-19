@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard | ร้าน Dealer จัดเก็บสินค้าเกิน 30 วัน</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f172a;--card:#1e293b;--card2:#273449;--line:#334155;--txt:#e2e8f0;--mut:#94a3b8;--accent:#f97316;--accent2:#38bdf8;--red:#ef4444;--amber:#f59e0b;--green:#22c55e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','Sarabun',system-ui,sans-serif;background:var(--bg);color:var(--txt);padding:18px 14px 60px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:2px solid var(--line);padding-bottom:14px;margin-bottom:20px}
+h1{font-size:22px;font-weight:700}
+h1 .em{color:var(--accent)}
+.sub{color:var(--mut);font-size:13px;margin-top:4px}
+.badge{background:var(--accent);color:#fff;font-size:12px;font-weight:600;padding:5px 12px;border-radius:20px;white-space:nowrap}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:22px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
+.kpi .v{font-size:28px;font-weight:700;margin-top:2px}
+.kpi .l{font-size:12px;color:var(--mut)}
+.kpi.red::before{background:var(--red)} .kpi.amber::before{background:var(--amber)} .kpi.blue::before{background:var(--accent2)} .kpi.green::before{background:var(--green)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:22px}
+@media(max-width:860px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card h3{font-size:14px;margin-bottom:14px;color:var(--txt);display:flex;align-items:center;gap:8px}
+.card h3 .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.chart-box{position:relative;height:280px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center}
+.controls input,.controls select{background:var(--card2);border:1px solid var(--line);color:var(--txt);padding:8px 12px;border-radius:8px;font-size:13px;font-family:inherit}
+.controls input{flex:1;min-width:180px}
+.tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 12px;text-align:left;white-space:nowrap}
+thead th{background:var(--card2);color:var(--mut);font-weight:600;cursor:pointer;user-select:none;position:sticky;top:0}
+thead th:hover{color:var(--txt)}
+tbody tr{border-top:1px solid var(--line)}
+tbody tr:hover{background:var(--card2)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600}
+.p-red{background:rgba(239,68,68,.18);color:#fca5a5}
+.p-amber{background:rgba(245,158,11,.18);color:#fcd34d}
+.p-orange{background:rgba(249,115,22,.18);color:#fdba74}
+.foot{text-align:center;color:var(--mut);font-size:12px;margin-top:24px}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tab{background:var(--card2);border:1px solid var(--line);color:var(--mut);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>📦 ร้าน Dealer ที่จัดเก็บสินค้า <span class="em">เกินกว่า 30 วัน</span></h1>
+    <div class="sub">รายงานสินค้าค้างสต็อกที่ร้านตัวแทนจำหน่าย (AGING_DAYS ร้าน &gt; 30 วัน) · ข้อมูล ณ วันที่ <span id="gdate"></span></div>
+  </div>
+  <div class="badge">DEALER AGING REPORT</div>
+</header>
+
+<div class="kpis">
+  <div class="kpi red"><div class="l">เครื่องค้างเกิน 30 วัน</div><div class="v" id="k1"></div></div>
+  <div class="kpi amber"><div class="l">จำนวนร้าน Dealer</div><div class="v" id="k2"></div></div>
+  <div class="kpi blue"><div class="l">จำนวนสาขา</div><div class="v" id="k3"></div></div>
+  <div class="kpi green"><div class="l">มูลค่ารวม (บาท)</div><div class="v" id="k4"></div></div>
+  <div class="kpi"><div class="l">ค้างนานสุด (วัน)</div><div class="v" id="k5"></div></div>
+</div>
+
+<div class="grid2">
+  <div class="card"><h3><span class="dot"></span>สัดส่วนอายุสต็อก (ทุกเครื่อง)</h3><div class="chart-box"><canvas id="cBucket"></canvas></div></div>
+  <div class="card"><h3><span class="dot"></span>เกิน 30 วัน แยกตามแบรนด์</h3><div class="chart-box"><canvas id="cBrand"></canvas></div></div>
+</div>
+
+<div class="card" style="margin-bottom:22px">
+  <h3><span class="dot"></span>Top 10 ร้าน Dealer (มูลค่าสินค้าค้างเกิน 30 วัน)</h3>
+  <div class="chart-box" style="height:320px"><canvas id="cDealer"></canvas></div>
+</div>
+
+<div class="card">
+  <div class="tabs">
+    <div class="tab active" data-view="rows">รายการเครื่อง (47)</div>
+    <div class="tab" data-view="dealer">สรุปตามร้าน</div>
+    <div class="tab" data-view="branch">สรุปตามสาขา</div>
+  </div>
+  <div class="controls">
+    <input id="search" placeholder="🔍 ค้นหา ร้าน / สาขา / รุ่น / Serial ...">
+    <select id="fBrand"><option value="">ทุกแบรนด์</option></select>
+  </div>
+  <div class="tbl-wrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+</div>
+
+<div class="foot">สร้างโดยระบบอัตโนมัติ · เกณฑ์: ระยะเวลาจัดเก็บที่ร้าน (AGING_DAYS ร้าน) มากกว่า 30 วัน</div>
+</div>
+
+<script>
+const DATA = {"generated": "2026-06-19", "total_items": 1976, "over30_items": 47, "over30_dealers": 27, "over30_branches": 14, "over30_value": 481844, "max_aging": 71, "rows": [{"dealer": "ร้อยล้านเซอร์วิส", "dcode": "DMN00215", "branch": "นครศรีธรรมราช 1", "area": "8", "brand": "Xiaomi", "item": "WS_Xiaomi Redmi 15 5G 8/256GB Titan Gray (Jaymart)", "serial": "868392079882181", "person": "ภัทรวีโชติ สงวนโสตร์", "docdate": "2026/04/10", "aging": 71, "price": 5999}, {"dealer": "ร้อยล้านเซอร์วิส", "dcode": "DMN00215", "branch": "นครศรีธรรมราช 1", "area": "8", "brand": "OPPO", "item": "WS_OPPO Reno15F 5G 12/256GB (CPH2801) Afterglow Pink (OPPO)", "serial": "863766082253131", "person": "ภัทรวีโชติ สงวนโสตร์", "docdate": "2026/04/28", "aging": 53, "price": 15999}, {"dealer": "ร้าน พจน์โฟน", "dcode": "DMN01239", "branch": "ลำปลายมาศ", "area": "5", "brand": "vivo", "item": "WS_Vivo V60 Lite 5G 8/128GB Pop Pink (Vivo)", "serial": "861974085495251", "person": "นุจรินทร์ กลมประโคน", "docdate": "2026/05/04", "aging": 47, "price": 10999}, {"dealer": "วีซ่ามือถือ", "dcode": "DMN00659", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "Vivo Y05 4/128GB Voyage Black", "serial": "868727083387844", "person": "ภานุพงศ์ อ่อนมิ่ง", "docdate": "2026/05/11", "aging": 40, "price": 4599}, {"dealer": "A.J. Phone สาขาโลตัสพัทยาเหนือ", "dcode": "DMN00806", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "Vivo V70 FE 5G 8/256GB Muse Purple", "serial": "860812088700577", "person": "จุฑามาศ แจ่มแจ้ง", "docdate": "2026/05/11", "aging": 40, "price": 12999}, {"dealer": "วีซ่ามือถือ", "dcode": "DMN00659", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "Vivo Y31d 4G 6/128GB Starlight Grey", "serial": "866911084230458", "person": "ภานุพงศ์ อ่อนมิ่ง", "docdate": "2026/05/11", "aging": 40, "price": 8499}, {"dealer": "วีซ่ามือถือ", "dcode": "DMN00659", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "Vivo V70 FE 5G 8/256GB Ocean Blue", "serial": "860812088917411", "person": "ภานุพงศ์ อ่อนมิ่ง", "docdate": "2026/05/11", "aging": 40, "price": 12999}, {"dealer": "วีซ่ามือถือ", "dcode": "DMN00659", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "WS_Vivo V60 Lite 5G 8/128GB Elegant Black (Vivo)", "serial": "861974085363392", "person": "ภานุพงศ์ อ่อนมิ่ง", "docdate": "2026/05/11", "aging": 40, "price": 10999}, {"dealer": "แทนใจโฟน", "dcode": "DMN01008", "branch": "พัทยา", "area": "2", "brand": "SAMSUNG", "item": "WS_SAM A17 5G 8/256GB Black", "serial": "355851152932270", "person": "ธนวัฒน์ บุญยรัตน์", "docdate": "2026/05/11", "aging": 40, "price": 9299}, {"dealer": "A.J. Phone สาขาโลตัสพัทยาเหนือ", "dcode": "DMN00806", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "WS_Vivo V60 Lite 5G 8/128GB Elegant Black (Vivo)", "serial": "861974085363475", "person": "จุฑามาศ แจ่มแจ้ง", "docdate": "2026/05/11", "aging": 40, "price": 10999}, {"dealer": "วีซ่ามือถือ", "dcode": "DMN00659", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "WS_Vivo V60 Lite 5G 8/128GB Pop Pink (Vivo)", "serial": "861974085490278", "person": "ภานุพงศ์ อ่อนมิ่ง", "docdate": "2026/05/11", "aging": 40, "price": 10999}, {"dealer": "A.J. Phone สาขาโลตัสพัทยาเหนือ", "dcode": "DMN00806", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "WS_Vivo Y31 5G 8/256GB Jade Green (Vivo)", "serial": "864604089067031", "person": "จุฑามาศ แจ่มแจ้ง", "docdate": "2026/05/11", "aging": 40, "price": 8499}, {"dealer": "หนิงโฟน", "dcode": "DMN01278", "branch": "อุบลราชธานี", "area": "5", "brand": "vivo", "item": "Vivo V70 FE 5G 8/256GB Urban Silver", "serial": "860812089350414", "person": "ดวงพร ขันแข็ง", "docdate": "2026/05/12", "aging": 39, "price": 12999}, {"dealer": "โก้เณรโฟน", "dcode": "DMN00242", "branch": "ภูเก็ต", "area": "8", "brand": "realme", "item": "WS_Realme C85 8/128GB Parrot Purple (Realme)", "serial": "869799080226738", "person": "จุถิ้น สุวรรณโล", "docdate": "2026/05/13", "aging": 38, "price": 5999}, {"dealer": "เอ็นพีโมบาย", "dcode": "DMN00787", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "Vivo V70 12/512GB Alpine Gray", "serial": "868831087638499", "person": "บุญเรียน จันทร์เทศ", "docdate": "2026/05/14", "aging": 37, "price": 20999}, {"dealer": "เอ็นพีโมบาย", "dcode": "DMN00787", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Summit Platinum", "serial": "868449085952125", "person": "บุญเรียน จันทร์เทศ", "docdate": "2026/05/14", "aging": 37, "price": 5499}, {"dealer": "ณานฌาย โฟน", "dcode": "DMN00591", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Summit Platinum", "serial": "868449085911360", "person": "มนัญญา คำนวณสิริกุล", "docdate": "2026/05/14", "aging": 37, "price": 5499}, {"dealer": "ณานฌาย โฟน", "dcode": "DMN00591", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Voyage Black", "serial": "868449085686822", "person": "มนัญญา คำนวณสิริกุล", "docdate": "2026/05/14", "aging": 37, "price": 5499}, {"dealer": "ณานฌาย โฟน", "dcode": "DMN00591", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "WS_Vivo V60 Lite 5G 8/128GB Titanium Blue (Vivo)", "serial": "861974085466351", "person": "มนัญญา คำนวณสิริกุล", "docdate": "2026/05/14", "aging": 37, "price": 10999}, {"dealer": "เอ็นพีโมบาย", "dcode": "DMN00787", "branch": "พัทยา", "area": "2", "brand": "OPPO", "item": "WS_OPPO Reno15F 5G 12/256GB (CPH2801) Afterglow Pink (OPPO)", "serial": "863766082216997", "person": "บุญเรียน จันทร์เทศ", "docdate": "2026/05/14", "aging": 37, "price": 15999}, {"dealer": "อภิชาติมือถือ", "dcode": "DMN00175", "branch": "สระแก้ว", "area": "2", "brand": "OPPO", "item": "OPPO A6s 5G 8/256GB Ice White", "serial": "860382080610976", "person": "ปวีณา ฤทธิ์เจริญ", "docdate": "2026/05/15", "aging": 36, "price": 11999}, {"dealer": "แต้ววังรีเทเลคอม", "dcode": "DMN01029", "branch": "สระแก้ว", "area": "2", "brand": "vivo", "item": "Vivo V70 FE 5G 8/256GB Ocean Blue", "serial": "860812088914277", "person": "ปรีชญา อุ่นเรือน", "docdate": "2026/05/15", "aging": 36, "price": 12999}, {"dealer": "แต้ววังรีเทเลคอม", "dcode": "DMN01029", "branch": "สระแก้ว", "area": "2", "brand": "OPPO", "item": "WS_OPPO Reno15 5G 12/512GB (CPH2825) Aurora White (OPPO)", "serial": "868149084271655", "person": "ปรีชญา อุ่นเรือน", "docdate": "2026/05/15", "aging": 36, "price": 20999}, {"dealer": "อภิชาติมือถือ", "dcode": "DMN00175", "branch": "สระแก้ว", "area": "2", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Voyage Black", "serial": "868449085686582", "person": "ปวีณา ฤทธิ์เจริญ", "docdate": "2026/05/15", "aging": 36, "price": 5499}, {"dealer": "สวายโมบายโฟน", "dcode": "DMN00232", "branch": "สุรินทร์ 2", "area": "5", "brand": "vivo", "item": "Vivo V70 8/256GB Authentic Black", "serial": "868831086822458", "person": "สุฤทัย คล้ายบุตร", "docdate": "2026/05/16", "aging": 35, "price": 15999}, {"dealer": "อิงฟ้าโมบาย", "dcode": "DMN00964", "branch": "บึงกาฬ", "area": "6", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Summit Platinum", "serial": "868449085946747", "person": "เอมอร จันทร์์งาม", "docdate": "2026/05/16", "aging": 35, "price": 5499}, {"dealer": "ช่างเกมเชอร์วิส(สาขา2)", "dcode": "DMN01314", "branch": "บึงกาฬ", "area": "6", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Summit Platinum", "serial": "868449085946689", "person": "บุษดี เถาเมฆ", "docdate": "2026/05/16", "aging": 35, "price": 5499}, {"dealer": "หางน้ำโมบาย", "dcode": "DMN01374", "branch": "ตัวแทนจำหน่ายมือถือ ภาคเหนือ", "area": "18", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Voyage Black", "serial": "868449085672566", "person": "ธนพล อิ่มทอง", "docdate": "2026/05/18", "aging": 33, "price": 5499}, {"dealer": "หางน้ำโมบาย", "dcode": "DMN01374", "branch": "ตัวแทนจำหน่ายมือถือ ภาคเหนือ", "area": "18", "brand": "vivo", "item": "WS_Vivo V60 Lite 5G 8/128GB Titanium Blue (Vivo)", "serial": "861974085417610", "person": "ธนพล อิ่มทอง", "docdate": "2026/05/18", "aging": 33, "price": 10999}, {"dealer": "อภิชาติมือถือ", "dcode": "DMN00175", "branch": "สระแก้ว", "area": "2", "brand": "vivo", "item": "Vivo Y31d 4G 6/128GB Glow White", "serial": "866911084067710", "person": "ปวีณา ฤทธิ์เจริญ", "docdate": "2026/05/18", "aging": 33, "price": 8499}, {"dealer": "ฟิล์มโฟน", "dcode": "DMN00814", "branch": "ชลบุรี", "area": "2", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Summit Platinum", "serial": "868449085944668", "person": "สุภาภรณ์ ภักดี", "docdate": "2026/05/19", "aging": 32, "price": 5499}, {"dealer": "ปูโมบาย", "dcode": "DMN01032", "branch": "ชลบุรี", "area": "2", "brand": "vivo", "item": "Vivo V70 12/256GB Golden Hour", "serial": "868831086317970", "person": "อำพร โพธิสป", "docdate": "2026/05/19", "aging": 32, "price": 18499}, {"dealer": "NAY PHONE (นายโฟน)", "dcode": "DMN01222", "branch": "บึงกาฬ", "area": "6", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Summit Platinum", "serial": "868449085955607", "person": "คงเดช ศักดิ์สิทธิการ", "docdate": "2026/05/19", "aging": 32, "price": 5499}, {"dealer": "NAY PHONE (นายโฟน)", "dcode": "DMN01222", "branch": "บึงกาฬ", "area": "6", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Voyage Black", "serial": "868449085686921", "person": "คงเดช ศักดิ์สิทธิการ", "docdate": "2026/05/19", "aging": 32, "price": 5499}, {"dealer": "อภิเดช โมบาย", "dcode": "DMN01370", "branch": "สุพรรณบุรี", "area": "3", "brand": "vivo", "item": "WS_Vivo V60 Lite 5G 8/128GB Titanium Blue (Vivo)", "serial": "861974085418279", "person": "พัชชิญา สิทธิคุณ", "docdate": "2026/05/19", "aging": 32, "price": 10999}, {"dealer": "อภิเดช โมบาย", "dcode": "DMN01370", "branch": "สุพรรณบุรี", "area": "3", "brand": "vivo", "item": "Vivo V70 FE 5G 8/256GB Urban Silver", "serial": "860812089351156", "person": "พัชชิญา สิทธิคุณ", "docdate": "2026/05/19", "aging": 32, "price": 12999}, {"dealer": "บ้านมือถือ", "dcode": "DMN00644", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Voyage Black", "serial": "868449085672004", "person": "กฤษฏา วรปัญญา", "docdate": "2026/05/20", "aging": 31, "price": 5499}, {"dealer": "บ้านมือถือ", "dcode": "DMN00644", "branch": "พัทยา", "area": "2", "brand": "vivo", "item": "WS_Vivo V60 Lite 5G 8/128GB Elegant Black (Vivo)", "serial": "861974085363194", "person": "กฤษฏา วรปัญญา", "docdate": "2026/05/20", "aging": 31, "price": 10999}, {"dealer": "BIGJOP MOBILE", "dcode": "DMN00569", "branch": "จันทบุรี", "area": "2", "brand": "vivo", "item": "Vivo V70 FE 5G 12/256GB Urban Silver", "serial": "860812089203654", "person": "ธมนต์ภัทร ยงมาลี", "docdate": "2026/05/20", "aging": 31, "price": 14999}, {"dealer": "ตอง999โมบาย", "dcode": "DMN01159", "branch": "อุบลราชธานี", "area": "5", "brand": "Xiaomi", "item": "JMB_Xiaomi Redmi Note 15 Pro 5G 12/512GB Black", "serial": "862542076534328", "person": "ชวนพิศ พรมวัลย์", "docdate": "2026/05/20", "aging": 31, "price": 14990}, {"dealer": "อาร์ตโมบาย", "dcode": "DMN01101", "branch": "อุบลราชธานี", "area": "5", "brand": "vivo", "item": "WS_Vivo V60 Lite 5G 8/128GB Elegant Black (Vivo)", "serial": "861974085331597", "person": "จุฑามาศ ถิระบุตร", "docdate": "2026/05/20", "aging": 31, "price": 10999}, {"dealer": "ร้านตี๋ตาลสุมเซ็นเตอร์โฟน", "dcode": "DMN01158", "branch": "อุบลราชธานี", "area": "5", "brand": "vivo", "item": "WS_Vivo V60 Lite 5G 8/128GB Elegant Black (Vivo)", "serial": "861974085331472", "person": "วัฒนา รถพรม", "docdate": "2026/05/20", "aging": 31, "price": 10999}, {"dealer": "กรีนโฟน", "dcode": "DMN01263", "branch": "ลำปลายมาศ", "area": "5", "brand": "vivo", "item": "Vivo V70 FE 5G 12/256GB Ocean Blue", "serial": "860812088109837", "person": "อุไรวรรณ หาสุข", "docdate": "2026/05/20", "aging": 31, "price": 14999}, {"dealer": "นูาคอนโมบาย", "dcode": "DMN01097", "branch": "ทุ่งสง", "area": "8", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Summit Platinum", "serial": "868449085944767", "person": "สุชาติ พูลเกิด", "docdate": "2026/05/20", "aging": 31, "price": 5499}, {"dealer": "โมบายโฟน", "dcode": "DMN00178", "branch": "ซิงเกอร์โมบาย สาขา เตือนใจเสนา", "area": "44", "brand": "OPPO", "item": "OPPO A6s 5G 8/128GB Cappuccino Brown", "serial": "860382081145675", "person": "ศิกานต์ เกตโกมุท", "docdate": "2026/05/20", "aging": 31, "price": 9999}, {"dealer": "โมบายโฟน", "dcode": "DMN00178", "branch": "ซิงเกอร์โมบาย สาขา เตือนใจเสนา", "area": "44", "brand": "vivo", "item": "Vivo Y31d 4G 6/128GB Glow White", "serial": "866911083965138", "person": "ศิกานต์ เกตโกมุท", "docdate": "2026/05/20", "aging": 31, "price": 8499}, {"dealer": "โมบายโฟน", "dcode": "DMN00178", "branch": "ซิงเกอร์โมบาย สาขา เตือนใจเสนา", "area": "44", "brand": "vivo", "item": "Vivo Y11d 4/128 GB Voyage Black", "serial": "868449085686707", "person": "ศิกานต์ เกตโกมุท", "docdate": "2026/05/20", "aging": 31, "price": 5499}], "by_dealer": [{"dealer": "วีซ่ามือถือ", "branch": "พัทยา", "items": 5, "value": 48095, "maxaging": 40}, {"dealer": "เอ็นพีโมบาย", "branch": "พัทยา", "items": 3, "value": 42497, "maxaging": 37}, {"dealer": "แต้ววังรีเทเลคอม", "branch": "สระแก้ว", "items": 2, "value": 33998, "maxaging": 36}, {"dealer": "A.J. Phone สาขาโลตัสพัทยาเหนือ", "branch": "พัทยา", "items": 3, "value": 32497, "maxaging": 40}, {"dealer": "อภิชาติมือถือ", "branch": "สระแก้ว", "items": 3, "value": 25997, "maxaging": 36}, {"dealer": "อภิเดช โมบาย", "branch": "สุพรรณบุรี", "items": 2, "value": 23998, "maxaging": 32}, {"dealer": "โมบายโฟน", "branch": "ซิงเกอร์โมบาย สาขา เตือนใจเสนา", "items": 3, "value": 23997, "maxaging": 31}, {"dealer": "ร้อยล้านเซอร์วิส", "branch": "นครศรีธรรมราช 1", "items": 2, "value": 21998, "maxaging": 71}, {"dealer": "ณานฌาย โฟน", "branch": "พัทยา", "items": 3, "value": 21997, "maxaging": 37}, {"dealer": "ปูโมบาย", "branch": "ชลบุรี", "items": 1, "value": 18499, "maxaging": 32}, {"dealer": "บ้านมือถือ", "branch": "พัทยา", "items": 2, "value": 16498, "maxaging": 31}, {"dealer": "หางน้ำโมบาย", "branch": "ตัวแทนจำหน่ายมือถือ ภาคเหนือ", "items": 2, "value": 16498, "maxaging": 33}, {"dealer": "สวายโมบายโฟน", "branch": "สุรินทร์ 2", "items": 1, "value": 15999, "maxaging": 35}, {"dealer": "BIGJOP MOBILE", "branch": "จันทบุรี", "items": 1, "value": 14999, "maxaging": 31}, {"dealer": "กรีนโฟน", "branch": "ลำปลายมาศ", "items": 1, "value": 14999, "maxaging": 31}, {"dealer": "ตอง999โมบาย", "branch": "อุบลราชธานี", "items": 1, "value": 14990, "maxaging": 31}, {"dealer": "หนิงโฟน", "branch": "อุบลราชธานี", "items": 1, "value": 12999, "maxaging": 39}, {"dealer": "ร้าน พจน์โฟน", "branch": "ลำปลายมาศ", "items": 1, "value": 10999, "maxaging": 47}, {"dealer": "ร้านตี๋ตาลสุมเซ็นเตอร์โฟน", "branch": "อุบลราชธานี", "items": 1, "value": 10999, "maxaging": 31}, {"dealer": "อาร์ตโมบาย", "branch": "อุบลราชธานี", "items": 1, "value": 10999, "maxaging": 31}, {"dealer": "NAY PHONE (นายโฟน)", "branch": "บึงกาฬ", "items": 2, "value": 10998, "maxaging": 32}, {"dealer": "แทนใจโฟน", "branch": "พัทยา", "items": 1, "value": 9299, "maxaging": 40}, {"dealer": "โก้เณรโฟน", "branch": "ภูเก็ต", "items": 1, "value": 5999, "maxaging": 38}, {"dealer": "ช่างเกมเชอร์วิส(สาขา2)", "branch": "บึงกาฬ", "items": 1, "value": 5499, "maxaging": 35}, {"dealer": "นูาคอนโมบาย", "branch": "ทุ่งสง", "items": 1, "value": 5499, "maxaging": 31}, {"dealer": "ฟิล์มโฟน", "branch": "ชลบุรี", "items": 1, "value": 5499, "maxaging": 32}, {"dealer": "อิงฟ้าโมบาย", "branch": "บึงกาฬ", "items": 1, "value": 5499, "maxaging": 35}], "by_brand": [{"brand": "vivo", "items": 38, "value": 370562}, {"brand": "OPPO", "items": 5, "value": 74995}, {"brand": "Xiaomi", "items": 2, "value": 20989}, {"brand": "SAMSUNG", "items": 1, "value": 9299}, {"brand": "realme", "items": 1, "value": 5999}], "by_branch": [{"branch": "พัทยา", "items": 17, "value": 170883}, {"branch": "สระแก้ว", "items": 5, "value": 59995}, {"branch": "อุบลราชธานี", "items": 4, "value": 49987}, {"branch": "ลำปลายมาศ", "items": 2, "value": 25998}, {"branch": "ชลบุรี", "items": 2, "value": 23998}, {"branch": "สุพรรณบุรี", "items": 2, "value": 23998}, {"branch": "ซิงเกอร์โมบาย สาขา เตือนใจเสนา", "items": 3, "value": 23997}, {"branch": "นครศรีธรรมราช 1", "items": 2, "value": 21998}, {"branch": "บึงกาฬ", "items": 4, "value": 21996}, {"branch": "ตัวแทนจำหน่ายมือถือ ภาคเหนือ", "items": 2, "value": 16498}, {"branch": "สุรินทร์ 2", "items": 1, "value": 15999}, {"branch": "จันทบุรี", "items": 1, "value": 14999}, {"branch": "ภูเก็ต", "items": 1, "value": 5999}, {"branch": "ทุ่งสง", "items": 1, "value": 5499}], "buckets": [{"label": "≤ 30 วัน", "count": 1929}, {"label": "31-45 วัน", "count": 44}, {"label": "46-60 วัน", "count": 2}, {"label": "> 60 วัน", "count": 1}]};
+const fmt = n => n.toLocaleString('en-US');
+document.getElementById('gdate').textContent = DATA.generated;
+document.getElementById('k1').textContent = fmt(DATA.over30_items);
+document.getElementById('k2').textContent = fmt(DATA.over30_dealers);
+document.getElementById('k3').textContent = fmt(DATA.over30_branches);
+document.getElementById('k4').textContent = fmt(DATA.over30_value);
+document.getElementById('k5').textContent = fmt(DATA.max_aging);
+
+Chart.defaults.color='#94a3b8'; Chart.defaults.font.family="'Segoe UI','Sarabun',sans-serif";
+const grid={color:'#334155'};
+
+new Chart(document.getElementById('cBucket'),{type:'doughnut',
+ data:{labels:DATA.buckets.map(b=>b.label),datasets:[{data:DATA.buckets.map(b=>b.count),
+ backgroundColor:['#334155','#f59e0b','#f97316','#ef4444'],borderColor:'#1e293b',borderWidth:2}]},
+ options:{plugins:{legend:{position:'right'}},cutout:'58%'}});
+
+new Chart(document.getElementById('cBrand'),{type:'bar',
+ data:{labels:DATA.by_brand.map(b=>b.brand),datasets:[
+  {label:'จำนวนเครื่อง',data:DATA.by_brand.map(b=>b.items),backgroundColor:'#38bdf8'}]},
+ options:{plugins:{legend:{display:false}},scales:{x:{grid},y:{grid,beginAtZero:true}}}});
+
+const top=DATA.by_dealer.slice(0,10);
+new Chart(document.getElementById('cDealer'),{type:'bar',
+ data:{labels:top.map(d=>d.dealer),datasets:[{label:'มูลค่า (บาท)',data:top.map(d=>d.value),backgroundColor:'#f97316'}]},
+ options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid,beginAtZero:true},y:{grid}}}});
+
+// brand filter options
+[...new Set(DATA.rows.map(r=>r.brand))].filter(Boolean).sort().forEach(b=>{
+ const o=document.createElement('option');o.value=b;o.textContent=b;document.getElementById('fBrand').appendChild(o);});
+
+let view='rows', sortKey='aging', sortDir=-1;
+const agePill=a=>{let c=a>60?'p-red':a>45?'p-orange':'p-amber';return `<span class="pill ${c}">${a} วัน</span>`;};
+
+const COLS={
+ rows:[['dealer','ร้าน Dealer'],['branch','สาขา'],['brand','แบรนด์'],['item','รุ่นสินค้า'],['serial','Serial'],['person','ผู้รับผิดชอบ'],['docdate','วันที่เอกสาร'],['aging','อายุ (วัน)','n'],['price','ราคา','n']],
+ dealer:[['dealer','ร้าน Dealer'],['branch','สาขา'],['items','จำนวนเครื่อง','n'],['value','มูลค่ารวม','n'],['maxaging','ค้างนานสุด','n']],
+ branch:[['branch','สาขา'],['items','จำนวนเครื่อง','n'],['value','มูลค่ารวม','n']]
+};
+const SRC={rows:()=>DATA.rows,dealer:()=>DATA.by_dealer,branch:()=>DATA.by_branch};
+
+function render(){
+ const cols=COLS[view];
+ const thead=document.querySelector('#tbl thead');
+ thead.innerHTML='<tr>'+cols.map(c=>`<th data-k="${c[0]}" class="${c[2]==='n'?'num':''}">${c[1]}${sortKey===c[0]?(sortDir<0?' ▼':' ▲'):''}</th>`).join('')+'</tr>';
+ thead.querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=-1;}render();});
+ let data=SRC[view]().slice();
+ const q=document.getElementById('search').value.trim().toLowerCase();
+ const fb=document.getElementById('fBrand').value;
+ if(q)data=data.filter(r=>Object.values(r).some(v=>String(v).toLowerCase().includes(q)));
+ if(fb&&view==='rows')data=data.filter(r=>r.brand===fb);
+ if(data[0]&&sortKey in data[0])data.sort((a,b)=>{let x=a[sortKey],y=b[sortKey];if(typeof x==='number')return (x-y)*sortDir;return String(x).localeCompare(String(y),'th')*sortDir;});
+ const tb=document.querySelector('#tbl tbody');
+ tb.innerHTML=data.map(r=>'<tr>'+cols.map(c=>{
+   let v=r[c[0]];
+   if(c[0]==='aging'||c[0]==='maxaging')return `<td class="num">${agePill(v)}</td>`;
+   if(c[2]==='n')return `<td class="num">${fmt(v||0)}</td>`;
+   return `<td>${v||'-'}</td>`;
+ }).join('')+'</tr>').join('')||`<tr><td colspan="${cols.length}" style="text-align:center;color:#94a3b8;padding:24px">ไม่พบข้อมูล</td></tr>`;
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+ view=t.dataset.view;sortKey=view==='rows'?'aging':'value';sortDir=-1;
+ document.getElementById('fBrand').style.display=view==='rows'?'':'none';render();});
+document.getElementById('search').oninput=render;
+document.getElementById('fBrand').onchange=render;
+render();
+</script>
+</body>
+</html>
